@@ -19,9 +19,12 @@ bool shouldStop = false;
 actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> *ac;
 
 int gridMap[20][20];
+int nextX = 0;
+int nextY = 0;
 geometry_msgs::Pose2D targetPose;
 geometry_msgs::TransformStamped currentPos;
 tf2_ros::Buffer buffer;
+bool allDone = false;
 
 void floodFillInit(){
 
@@ -37,7 +40,7 @@ void floodFillInit(){
 
 }
 
-void floodFillPlanner(int arr[][20], int x, int y){
+void floodFillPlanner(int arr[20][20], int x, int y){
 
 	int count = 0;
 
@@ -52,6 +55,7 @@ void floodFillPlanner(int arr[][20], int x, int y){
 				if(count == 400){
 
 					ac->cancelAllGoals();
+					allDone = true;
 			
 				}
 
@@ -65,22 +69,30 @@ void floodFillPlanner(int arr[][20], int x, int y){
 
 	if(arr[x + 1][y] == 0){
 
-		floodFillPlanner(arr, x + 1, y);
+		//floodFillPlanner(arr, x + 1, y);
+		nextX = x + 1;
+		nextY = y;
 		targetPose.x += 1;
 		
 	}else if(arr[x][y + 1] == 0){
 
-		floodFillPlanner(arr, x, y + 1);
+		//floodFillPlanner(arr, x, y + 1);
+		nextX = x;
+		nextY = y + 1;
 		targetPose.y += 1;
 
 	}else if(arr[x - 1][y] == 0){
 
-		floodFillPlanner(arr, x - 1, y);
+		//floodFillPlanner(arr, x - 1, y);
+		nextX = x - 1;
+		nextY = y;
 		targetPose.x -= 1;
 
 	}else if(arr[x][y - 1] == 0){
 
-		floodFillPlanner(arr, x, y - 1);
+		//floodFillPlanner(arr, x, y - 1);
+		nextX = x;
+		nextY = y - 1;
 		targetPose.y -= 1;
 
 	}else{
@@ -89,22 +101,30 @@ void floodFillPlanner(int arr[][20], int x, int y){
 
 			if(arr[x + i][y] == 0){
 
-				floodFillPlanner(arr, x + i, y);
+				//floodFillPlanner(arr, x + i, y);
+				nextX = x + i;
+				nextY = y;
 				targetPose.x += i;
 
 			}else if(arr[x][y + i] == 0){
 
-				floodFillPlanner(arr, x, y + i);
+				//floodFillPlanner(arr, x, y + i);
+				nextX = x;				
+				nextY = y + i;
 				targetPose.y += i;
 
 			}else if(arr[x - i][y] == 0){
 
-				floodFillPlanner(arr, x - i, y);
+				//floodFillPlanner(arr, x - i, y);
+				nextX = x - i;
+				nextY = y;
 				targetPose.x -= i;
 
 			}else if(arr[x][y - i] == 0){
 
-				floodFillPlanner(arr, x, y - i);
+				//floodFillPlanner(arr, x, y - i);
+				nextX = x;
+				nextY = y - i;
 				targetPose.y -= i;
 
 			}
@@ -123,11 +143,12 @@ void markOnMap(){
 	int intX = round(tempX);
 	int intY = round(tempY);
 
+	gridMap[intX][intY] = 0;
 	gridMap[intX + 1][intY + 1] = 0;
+	gridMap[intX + 2][intY + 2] = 0;
 
 
 }
-
 
 void sendNewGoal();
 void serviceActivated() {}
@@ -155,8 +176,8 @@ void sendNewGoal () {
 void updateScan(sensor_msgs::LaserScan scan) {
 	for (int i = 0; i < scan.ranges.size(); i++) {
 		if (scan.ranges[i] < 0.2) {
-			ac->cancelAllGoals();
 			markOnMap();
+			ac->cancelAllGoals();
 		}
 	}
 }
@@ -168,15 +189,36 @@ int main(int argc,char **argv) {
 	ros::Subscriber scanSub = nh.subscribe("/scan", 1000, &updateScan);
 	
     ac = new actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction>("move_base",true);
-	
-    //ROS_INFO_STREAM("Waiting for server to be available...");
+	ros::Publisher pubTwist = nh.advertise<geometry_msgs::Twist>("husky_alpha/husky_velocity_controller/cmd_vel", 1000);
+	floodFillInit();
+	ROS_INFO_STREAM("Built Grid Map");
+    ROS_INFO_STREAM("Waiting for server to be available...");
     while (!ac->waitForServer()) {
     }
-    //ROS_INFO_STREAM("done!");
+    ROS_INFO_STREAM("done!");
     ac->cancelAllGoals();
-    sendNewGoal();
+
+	while(!allDone){
+		  
+		ros::spinOnce();
+		ac->cancelAllGoals();
+		floodFillPlanner(gridMap, nextX, nextY);
+    		sendNewGoal();
+
+			geometry_msgs::Twist targetTwist;
+			targetTwist.angular.z = 1.57;
+			pubTwist.publish(targetTwist);
     
-    ros::spin();
-	
+   		 //ros::spinOnce();
+	}
+
 	return 0; 
 }
+
+//create gridMap
+//produce next free coords using floodfill
+//send to actionclient to plan
+//if run into objec mark on gridmap as traveled to already
+//when reaching destination given by gridmap spin once in a circle then get new goal
+//gridmap selects the next avaliable slot in the 4 main directions, if it can not find one it will select from increasing values in either direction
+//gridmap terminates when all grid areas have been explored (marked with 0)
