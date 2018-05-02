@@ -6,12 +6,14 @@ project(labpkg)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  geometry_msgs
-  sensor_msgs
-  tf2_msgs
-  tf2_ros
-  tf2
-  tf2_geometry_msgs
+	geometry_msgs
+	sensor_msgs
+	tf2_msgs
+	tf2_ros
+	tf2
+	tf2_geometry_msgs
+	actionlib
+	actionlib_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -132,20 +134,21 @@ include_directories(
 # add_dependencies(labpkg ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
+# add_executable(labpkg_node src/labpkg_node.cpp)
+add_executable(detectdivergence src/detectdivergence.cpp)
 add_executable(pathing src/pathing.cpp)
-add_executable(map_processor src/map_processor.cpp)
 add_executable(treasure_tracker src/treasure_tracker.cpp)
-
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(labpkg_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
+# target_link_libraries(labpkg_node
+#   ${catkin_LIBRARIES}
+# )
+target_link_libraries(detectdivergence ${catkin_LIBRARIES} )
 target_link_libraries(pathing ${catkin_LIBRARIES} )
-target_link_libraries(map_processor ${catkin_LIBRARIES} )
 target_link_libraries(treasure_tracker ${catkin_LIBRARIES} )
-
-
 #############
 ## Install ##
 #############
