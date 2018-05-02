@@ -40,6 +40,6 @@
   <!-- Use test_depend for packages you need only for testing: -->
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>roscpp geometry_msgs sensor_msgs tf2_ros tf2 tf2_geometry_msgs</build_depend>
-<run_depend>roscpp geometry_msgs sensor_msgs tf2_ros tf2 tf2_geometry_msgs</run_depend>
+  <build_depend>roscpp geometry_msgs sensor_msgs tf2_ros tf2 tf2_geometry_msgs logical_camera_plugin</build_depend>
+<run_depend>roscpp geometry_msgs sensor_msgs tf2_ros tf2 tf2_geometry_msgs logical_camera_plugin</run_depend>
 </package>
