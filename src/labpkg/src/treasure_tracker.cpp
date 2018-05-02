@@ -11,7 +11,8 @@ void getScan(const logical_camera_plugin::logicalImage &scanMsg){
 
 	for(int i = 0; i < storeTreasure.size(); i++){
 
-		if (scanMsg.pose_pos_x == storeTreasure[i].pose_pos_x && scanMsg.pose_pos_y == storeTreasure[i].pose_pos_y && scanMsg.pose_rot_x == storeTreasure[i].pose_rot_x){
+		//if (scanMsg.pose_pos_x == storeTreasure[i].pose_pos_x && scanMsg.pose_pos_y == storeTreasure[i].pose_pos_y && scanMsg.pose_rot_x == storeTreasure[i].pose_rot_x){
+		if (scanMsg.modelName == storeTreasure[i].modelName){
 
 			ROS_INFO_STREAM("Did not add repeat Treasure");
 			readyToAdd = false;
@@ -53,8 +54,8 @@ int main(int argc, char ** argv){
 	ros::init(argc, argv, "treasure_finder");
 	ros::NodeHandle nh;
 
-	ros::Subscriber subSensor = nh.subscribe("/objectDetected", 1000, &getScan);
-	
+	ros::Subscriber subSensor = nh.subscribe("/objectsDetected", 1000, &getScan);
+
 	//print();
 
 	ros::spin();
