@@ -77,6 +77,7 @@ void floodFillPlanner(int arr[20][20], int x, int y){
 		nextY = y;
 		targetPose.x += 1;
 		targetPose.y = currentPos.transform.translation.y;
+		return;
 		
 	}else if(arr[x][y + 1] == 0){
 
@@ -85,6 +86,7 @@ void floodFillPlanner(int arr[20][20], int x, int y){
 		nextY = y + 1;
 		targetPose.x = currentPos.transform.translation.x;
 		targetPose.y += 1;
+		return;
 
 	}else if(arr[x - 1][y] == 0){
 
@@ -93,6 +95,7 @@ void floodFillPlanner(int arr[20][20], int x, int y){
 		nextY = y;
 		targetPose.x -= 1;
 		targetPose.y = currentPos.transform.translation.y;
+		return;
 
 	}else if(arr[x][y - 1] == 0){
 
@@ -101,6 +104,7 @@ void floodFillPlanner(int arr[20][20], int x, int y){
 		nextY = y - 1;
 		targetPose.x = currentPos.transform.translation.x;
 		targetPose.y -= 1;
+		return;
 
 	}else{
 
@@ -113,6 +117,7 @@ void floodFillPlanner(int arr[20][20], int x, int y){
 				nextY = y;
 				targetPose.x += i;
 				targetPose.y = currentPos.transform.translation.y;
+				break;
 
 			}else if(arr[x][y + i] == 0){
 
@@ -121,6 +126,7 @@ void floodFillPlanner(int arr[20][20], int x, int y){
 				nextY = y + i;
 				targetPose.x = currentPos.transform.translation.x;
 				targetPose.y += i;
+				break;
 
 			}else if(arr[x - i][y] == 0){
 
@@ -129,6 +135,7 @@ void floodFillPlanner(int arr[20][20], int x, int y){
 				nextY = y;
 				targetPose.x -= i;
 				targetPose.y = currentPos.transform.translation.y;
+				break;
 
 			}else if(arr[x][y - i] == 0){
 
@@ -137,9 +144,12 @@ void floodFillPlanner(int arr[20][20], int x, int y){
 				nextY = y - i;
 				targetPose.x = currentPos.transform.translation.x;
 				targetPose.y -= i;
+				break;
 
 			}
 		}
+
+		return;
 	
 	}
 
