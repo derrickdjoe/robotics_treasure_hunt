@@ -8,20 +8,26 @@
 #include <move_base_msgs/MoveBaseAction.h>
 #include <stdlib.h>
 #include <sensor_msgs/LaserScan.h>
+#include <stdio.h>
+#include <math.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf/tf.h>
 
 using namespace std;
 bool shouldStop = false;
 actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> *ac;
-void sendNewGoal();
 
 int gridMap[20][20];
 geometry_msgs::Pose2D targetPose;
+geometry_msgs::TransformStamped currentPos;
+tf2_ros::Buffer buffer;
 
 void floodFillInit(){
 
 	for(int i = 0; i < 20; i++){
 
-		for(int j = 0; i < 20; j++){
+		for(int j = 0; j < 20; j++){
 
 			gridMap[i][j] = 999;
 
@@ -31,9 +37,8 @@ void floodFillInit(){
 
 }
 
-void floodFillPlanner(int arr[][10], int x, int y){
+void floodFillPlanner(int arr[][20], int x, int y){
 
-	//if visited every spot stop
 	int count = 0;
 
 	for(int i = 0; i < 20; i++){
@@ -44,49 +49,87 @@ void floodFillPlanner(int arr[][10], int x, int y){
 
 				count++;
 
+				if(count == 400){
+
+					ac->cancelAllGoals();
+			
+				}
+
 			}
 
 		}
 
 	}
 
-	if(count == 400){
-		
-		ROS_INFO_STREAM("Done");
-		ac->cancelAllGoals();
-
-	}
-	//set current location to 0
 	arr[x][y] = 0;
 
-
-	if(arr[x + 1][y] == 999){
+	if(arr[x + 1][y] == 0){
 
 		floodFillPlanner(arr, x + 1, y);
 		targetPose.x += 1;
-	
-	}else if(arr[x][y + 1] == 999){
+		
+	}else if(arr[x][y + 1] == 0){
 
 		floodFillPlanner(arr, x, y + 1);
 		targetPose.y += 1;
 
-	}else if(arr[x - 1][y] == 999){
+	}else if(arr[x - 1][y] == 0){
 
 		floodFillPlanner(arr, x - 1, y);
 		targetPose.x -= 1;
 
-	}else if(arr[x][y - 1] == 999){
+	}else if(arr[x][y - 1] == 0){
 
 		floodFillPlanner(arr, x, y - 1);
 		targetPose.y -= 1;
 
+	}else{
+
+		for(int i = 0; i < 20; i++){
+
+			if(arr[x + i][y] == 0){
+
+				floodFillPlanner(arr, x + i, y);
+				targetPose.x += i;
+
+			}else if(arr[x][y + i] == 0){
+
+				floodFillPlanner(arr, x, y + i);
+				targetPose.y += i;
+
+			}else if(arr[x - i][y] == 0){
+
+				floodFillPlanner(arr, x - i, y);
+				targetPose.x -= i;
+
+			}else if(arr[x][y - i] == 0){
+
+				floodFillPlanner(arr, x, y - i);
+				targetPose.y -= i;
+
+			}
+		}
+	
 	}
 
-	
-}	
+}
+		
+void markOnMap(){
+
+	currentPos = buffer.lookupTransform("husky_alpha/base_link", "odom", ros::Time(0));
+	float tempX = currentPos.transform.translation.x;
+	float tempY = currentPos.transform.translation.y;
+
+	int intX = round(tempX);
+	int intY = round(tempY);
+
+	gridMap[intX + 1][intY + 1] = 0;
 
 
-	
+}
+
+
+void sendNewGoal();
 void serviceActivated() {}
 void serviceFeedback(const move_base_msgs::MoveBaseFeedbackConstPtr& fb) {
 }
@@ -101,8 +144,8 @@ void sendNewGoal () {
     goal.target_pose.header.frame_id = "map";
     goal.target_pose.header.stamp = ros::Time::now();
     int targetPos = (rand() % 14) - 7;   
-    goal.target_pose.pose.position.x = targetPose;
-    goal.target_pose.pose.position.y = targetPose;
+    goal.target_pose.pose.position.x = targetPose.x;
+    goal.target_pose.pose.position.y = targetPose.y;
     goal.target_pose.pose.orientation.w = 1.0;
     //ROS_INFO_STREAM("Sending new goal: (" << goal.target_pose.pose.position.x << ", " << goal.target_pose.pose.position.y << ")\n");
     ros::Duration(0.1).sleep();
@@ -113,6 +156,7 @@ void updateScan(sensor_msgs::LaserScan scan) {
 	for (int i = 0; i < scan.ranges.size(); i++) {
 		if (scan.ranges[i] < 0.2) {
 			ac->cancelAllGoals();
+			markOnMap();
 		}
 	}
 }
@@ -120,8 +164,8 @@ void updateScan(sensor_msgs::LaserScan scan) {
 int main(int argc,char **argv) {
 	ros::init(argc,argv,"saferandomwalk");
     ros::NodeHandle nh;
+	tf2_ros::TransformListener listener(buffer);
 	ros::Subscriber scanSub = nh.subscribe("/scan", 1000, &updateScan);
-	//ros::Subscriber subLoc = nh.subscribe("/tf", 1000, &currentLoc);
 	
     ac = new actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction>("move_base",true);
 	
