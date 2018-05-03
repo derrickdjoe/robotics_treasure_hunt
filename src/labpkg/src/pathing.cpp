@@ -205,7 +205,7 @@ void sendNewGoal () {
 
 void updateScan(sensor_msgs::LaserScan scan) {
 	for (int i = 0; i < scan.ranges.size(); i++) {
-		if (scan.ranges[i] < 1.0) {
+		if (scan.ranges[i] < 0.5) {
 			isStuck = true;
 			markOnMap();
 			ac->cancelAllGoals();
@@ -239,8 +239,11 @@ int main(int argc,char **argv) {
 			ROS_INFO_STREAM("Moving towards normal goals");
 			ac->cancelAllGoals();
 
+			int count = 0;
 			int ttX = nextX;
 			int ttY = nextY;
+			int storeOldX = nextX;
+			int storeOldY = nextY;
 			cout << "Got Goal " << nextX << " " << nextY;
 			floodFillPlanner(gridMap, nextX, nextY);
     			sendNewGoal();
@@ -248,12 +251,28 @@ int main(int argc,char **argv) {
 			bool finished_before_timeout = ac->waitForResult(ros::Duration(30.0));
 			if(finished_before_timeout){
 				ROS_INFO_STREAM("GOT TO GOAL");
+				storeOldX = 0;
+				storeOldY = 0;
 				continue;
 
 			}else{
 
 				ROS_INFO_STREAM("Failed to reach gaol");
 				ac->cancelAllGoals();
+
+				if(storeOldX == nextX && storeOldY == nextY){
+
+					count++;
+
+					if(count == 5){
+
+						count = 0;
+						gridMap[nextX][nextY] = 0;
+
+					}
+
+				}
+
 			}
 
 
@@ -285,7 +304,7 @@ int main(int argc,char **argv) {
 			ROS_INFO_STREAM("Stuck, spin once, then going back");
 
 			geometry_msgs::Twist unstuckTwist;
-			unstuckTwist.linear.x = -10.0;
+			unstuckTwist.linear.x = -100.0;
 			pubTwist.publish(unstuckTwist);
 			rate.sleep();
 			pubTwist.publish(unstuckTwist);
@@ -298,6 +317,8 @@ int main(int argc,char **argv) {
 			isStuck = false;
 
 			rate.sleep();
+			ROS_INFO_STREAM("Finished Recovery Behevior");
+    			ros::Duration(5.0).sleep();
 
 		}
 	}
