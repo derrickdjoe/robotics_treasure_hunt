@@ -70,7 +70,7 @@ void getScan(const logical_camera_plugin::logicalImage &scanMsg){
 	geometry_msgs::TransformStamped logicalTrans;
 	tf2::convert( tf2::Transform(scanOrient, scanPos), logicalTrans.transform);
 
-	logicalTrans.header.stamp = ros::Time(0);
+	logicalTrans.header.stamp = ros::Time::now();
 	logicalTrans.header.frame_id = "logical_camera_link";
 	logicalTrans.child_frame_id = scanMsg.modelName;
 
